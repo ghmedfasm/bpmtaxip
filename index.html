@@ -100,6 +100,11 @@
           <option value="face">Rosto</option>
         </select>
       </div>
+      <div class="chip" id="cameraChip" style="display: none;">Câmera:
+        <select id="cameraSelect">
+          <option value="">Automática</option>
+        </select>
+      </div>
       <div class="chip">Canal:
         <select id="channel">
           <option value="g" selected>Verde</option>
@@ -213,6 +218,7 @@
   
   const modeRadios = [...document.querySelectorAll('input[name="mode"]')];
   const sourceSel = $('source'), channelSel = $('channel'), winSel = $('win');
+  const cameraSelect = $('cameraSelect'), cameraChip = $('cameraChip');
   const roiSize = $('roiSize'), roiInfo = $('roiInfo'), roiControl = $('roiControl'), sourceChip = $('sourceChip');
   const stabChk = $('stabChk'), autoGate = $('autoGate');
   const startBtn = $('start'), stopBtn = $('stop'), torchBtn = $('torch'), fsBtn = $('fs');
@@ -308,11 +314,15 @@
       touchMode.style.display = 'none';
       sourceChip.style.display = 'inline-flex';
       roiControl.style.display = 'inline-flex';
+      
+      // Enumerate cameras when switching to camera mode
+      enumerateCameras();
     } else {
       cameraMode.style.display = 'none';
       touchMode.style.display = 'block';
       sourceChip.style.display = 'none';
       roiControl.style.display = 'none';
+      cameraChip.style.display = 'none';
     }
     
     resetState();
@@ -352,34 +362,153 @@
     octx.strokeRect(state.roi.x, state.roi.y, state.roi.w, state.roi.h);
   }
 
-  // Camera functions
-  async function getConstraints() {
+  // Camera enumeration and selection
+  async function enumerateCameras() {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter(d => d.kind === 'videoinput');
+      
+      // Clear existing options except "Automática"
+      while (cameraSelect.children.length > 1) {
+        cameraSelect.removeChild(cameraSelect.lastChild);
+      }
+      
+      videoDevices.forEach((device, index) => {
+        const option = document.createElement('option');
+        option.value = device.deviceId;
+        option.textContent = device.label || `Câmera ${index + 1}`;
+        cameraSelect.appendChild(option);
+      });
+      
+      if (videoDevices.length > 1) {
+        cameraChip.style.display = 'inline-flex';
+      }
+      
+      console.log('Câmeras encontradas:', videoDevices.length);
+      
+    } catch (err) {
+      console.warn('Erro ao enumerar câmeras:', err);
+    }
+  }
+
+  // Camera functions with progressive fallback
+  async function getCameraStream() {
     const source = sourceSel.value;
-    const facing = source === 'finger' ? { exact: 'environment' } : 'user';
+    const selectedCamera = cameraSelect.value;
     
-    return {
+    // Progressive constraint fallback
+    const constraintSets = [];
+    
+    // If specific camera selected, try it first
+    if (selectedCamera) {
+      constraintSets.push({
+        audio: false,
+        video: {
+          deviceId: { exact: selectedCamera },
+          width: { ideal: 640, max: 1280 },
+          height: { ideal: 480, max: 720 },
+          frameRate: { ideal: 30, max: 60 }
+        }
+      });
+      
+      constraintSets.push({
+        audio: false,
+        video: {
+          deviceId: selectedCamera,
+          width: { ideal: 640 },
+          height: { ideal: 480 }
+        }
+      });
+    }
+    
+    // Try facingMode constraints
+    constraintSets.push({
       audio: false,
       video: {
-        facingMode: facing,
-        width: { ideal: 640 },
-        height: { ideal: 480 },
+        facingMode: source === 'finger' ? { ideal: 'environment' } : { ideal: 'user' },
+        width: { ideal: 640, max: 1280 },
+        height: { ideal: 480, max: 720 },
         frameRate: { ideal: 30, max: 60 }
       }
-    };
+    });
+    
+    constraintSets.push({
+      audio: false,
+      video: {
+        facingMode: source === 'finger' ? 'environment' : 'user',
+        width: { ideal: 640 },
+        height: { ideal: 480 }
+      }
+    });
+    
+    // Generic fallbacks
+    constraintSets.push({
+      audio: false,
+      video: {
+        width: { ideal: 640 },
+        height: { ideal: 480 }
+      }
+    });
+    
+    constraintSets.push({
+      audio: false,
+      video: true
+    });
+    
+    let lastError = null;
+    
+    for (let i = 0; i < constraintSets.length; i++) {
+      try {
+        console.log(`Tentando constraints ${i + 1}/${constraintSets.length}`, constraintSets[i]);
+        const stream = await navigator.mediaDevices.getUserMedia(constraintSets[i]);
+        
+        // Log successful constraints
+        const track = stream.getVideoTracks()[0];
+        const settings = track.getSettings();
+        console.log('✅ Câmera iniciada:', settings);
+        
+        return stream;
+        
+      } catch (err) {
+        console.warn(`❌ Constraints ${i + 1} falharam:`, err.name, err.message);
+        lastError = err;
+        
+        if (err.name === 'NotAllowedError' || err.name === 'NotFoundError') {
+          // These errors won't be fixed by trying different constraints
+          break;
+        }
+      }
+    }
+    
+    throw lastError || new Error('Não foi possível iniciar a câmera');
   }
 
   async function start() {
     try {
       state.running = true;
+      setStatus('Iniciando...');
       
       if (state.mode === 'camera') {
-        const constraints = await getConstraints();
-        state.stream = await navigator.mediaDevices.getUserMedia(constraints);
+        // Check for camera support
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          throw new Error('Câmera não suportada neste navegador');
+        }
+        
+        state.stream = await getCameraStream();
         video.srcObject = state.stream;
         await video.play();
         
         state.track = state.stream.getVideoTracks()[0];
         enableTorch();
+        
+        // Log camera info
+        const settings = state.track.getSettings();
+        console.log('Câmera ativa:', {
+          width: settings.width,
+          height: settings.height,
+          frameRate: settings.frameRate,
+          facingMode: settings.facingMode
+        });
       }
       
       resetState();
@@ -391,9 +520,32 @@
       
     } catch(err) {
       console.error('Erro ao iniciar:', err);
-      setStatus('Erro: ' + err.message);
+      
+      let errorMsg = 'Erro desconhecido';
+      switch(err.name) {
+        case 'NotAllowedError':
+          errorMsg = 'Permissão de câmera negada';
+          break;
+        case 'NotFoundError':
+          errorMsg = 'Nenhuma câmera encontrada';
+          break;
+        case 'OverconstrainedError':
+          errorMsg = 'Câmera não suporta as configurações solicitadas';
+          break;
+        case 'NotReadableError':
+          errorMsg = 'Câmera em uso por outro aplicativo';
+          break;
+        case 'AbortError':
+          errorMsg = 'Erro de hardware da câmera';
+          break;
+        default:
+          errorMsg = err.message || 'Erro ao acessar câmera';
+      }
+      
+      setStatus('❌ ' + errorMsg);
       state.running = false;
       startBtn.disabled = false;
+      stopBtn.disabled = true;
     }
   }
 
@@ -890,6 +1042,14 @@
   
   // Source change requires restart in camera mode
   sourceSel.addEventListener('change', () => {
+    if (state.running && state.mode === 'camera') {
+      stop();
+      setTimeout(start, 100);
+    }
+  });
+  
+  // Camera selection change
+  cameraSelect.addEventListener('change', () => {
     if (state.running && state.mode === 'camera') {
       stop();
       setTimeout(start, 100);
