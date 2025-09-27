@@ -3,267 +3,598 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Vitals Cam — FC & Perfusão</title>
+<title>Vitals Cam Pro — FC & Perfusão</title>
 <style>
   :root{
-    --bg:#0b0f14; --panel:#0f1724; --card:#0f1a2a; --muted:#8da2c0; --line:#1a2435; --pri:#53b6ff; --ok:#22c55e; --warn:#fbbf24; --bad:#ef4444;
+    --bg:#0b0f14; --panel:#0f1724; --card:#0f1a2a; --muted:#8da2c0; --line:#1a2435; 
+    --pri:#53b6ff; --ok:#22c55e; --warn:#fbbf24; --bad:#ef4444; --accent:#a855f7;
+    --shadow: 0 8px 30px rgba(0,0,0,.25); --blur: blur(8px);
   }
   *{box-sizing:border-box}
   html,body{height:100%}
-  body{margin:0; background:var(--bg); color:#eaf2ff; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;}
-  header{position:sticky; top:0; z-index:10; background:linear-gradient(180deg, rgba(11,15,20,.95), rgba(11,15,20,.7)); backdrop-filter: blur(8px); border-bottom:1px solid var(--line);}
-  .h-wrap{display:flex; align-items:center; justify-content:space-between; padding:12px 14px; gap:10px}
-  h1{font-size:clamp(15px, 4vw, 18px); margin:0; font-weight:800}
-  .badge{font-size:12px; padding:4px 8px; border:1px solid var(--line); border-radius:999px; color:#b9d7ff; background:#0d1626}
+  body{
+    margin:0; background:var(--bg); color:#eaf2ff; 
+    font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    overflow-x: hidden;
+  }
+  
+  header{
+    position:sticky; top:0; z-index:20; 
+    background:linear-gradient(180deg, rgba(11,15,20,.95), rgba(11,15,20,.8)); 
+    backdrop-filter: var(--blur); border-bottom:1px solid var(--line);
+    box-shadow: var(--shadow);
+  }
+  .h-wrap{display:flex; align-items:center; justify-content:space-between; padding:14px 16px; gap:12px}
+  h1{font-size:clamp(16px, 4vw, 20px); margin:0; font-weight:800; letter-spacing:-.5px}
+  .badge{
+    font-size:11px; padding:6px 10px; border:1px solid var(--line); border-radius:999px; 
+    color:#b9d7ff; background:rgba(13,22,38,.8); backdrop-filter: var(--blur);
+    text-transform: uppercase; font-weight: 600; letter-spacing: .5px;
+  }
 
-  .container{display:grid; gap:12px; padding:10px; grid-template-columns: 1fr; max-width:900px; margin:0 auto}
+  .container{
+    display:grid; gap:16px; padding:12px; grid-template-columns: 1fr; 
+    max-width:1000px; margin:0 auto; min-height: calc(100vh - 120px);
+  }
 
-  .card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:12px; box-shadow: 0 8px 30px rgba(0,0,0,.25)}
-  .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
-  .col{display:flex; flex-direction:column; gap:8px}
-  label{display:inline-flex; align-items:center; gap:8px}
-  select, input[type="range"], input[type="text"]{ -webkit-appearance:none; appearance:none; width:100%; background:#0e1522; color:#eaf2ff; border:1px solid var(--line); border-radius:12px; padding:10px; font-size:15px }
-  input[type="range"]{ height:36px; padding:0 }
-  button{ width:100%; min-height:44px; border-radius:12px; border:1px solid var(--line); background:#0e1522; color:#eaf2ff; font-weight:600; letter-spacing:.2px }
-  button:active{ transform: translateY(1px) }
-  .btn-row{ display:grid; grid-template-columns: 1fr 1fr; gap:10px }
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:18px; 
+    padding:16px; box-shadow: var(--shadow); position: relative; overflow: hidden;
+  }
+  .card::before{
+    content: ''; position: absolute; inset: 0; 
+    background: linear-gradient(135deg, rgba(83,182,255,.02), transparent 50%);
+    pointer-events: none;
+  }
+  
+  .row{display:flex; gap:12px; flex-wrap:wrap; align-items:center}
+  .col{display:flex; flex-direction:column; gap:10px}
+  
+  label{display:inline-flex; align-items:center; gap:8px; cursor: pointer}
+  select, input[type="range"], input[type="text"], input[type="number"]{ 
+    -webkit-appearance:none; appearance:none; width:100%; 
+    background:#0e1522; color:#eaf2ff; border:1px solid var(--line); 
+    border-radius:12px; padding:12px; font-size:15px; transition: all .2s;
+  }
+  select:focus, input:focus{
+    outline: none; border-color: var(--pri); box-shadow: 0 0 0 3px rgba(83,182,255,.1);
+  }
+  input[type="range"]{ height:40px; padding:0; cursor: pointer }
+  input[type="radio"], input[type="checkbox"]{ 
+    width: auto; accent-color: var(--pri); transform: scale(1.1);
+  }
+  
+  button{ 
+    width:100%; min-height:48px; border-radius:14px; border:1px solid var(--line); 
+    background:#0e1522; color:#eaf2ff; font-weight:600; letter-spacing:.3px;
+    cursor: pointer; transition: all .2s; position: relative; overflow: hidden;
+  }
+  button:hover:not(:disabled){ background:#12192a; transform: translateY(-1px); }
+  button:active:not(:disabled){ transform: translateY(1px) }
+  button:disabled{ opacity: 0.5; cursor: not-allowed; }
+  
+  .btn-row{ display:grid; grid-template-columns: 1fr 1fr; gap:12px }
   .btn-ghost{ background:#0c1523 }
-  .btn-pri{ background:#10243a; border-color:#1f3350 }
-  .muted{ color: var(--muted); font-size: .95rem }
+  .btn-pri{ 
+    background:linear-gradient(135deg, #1a3a5c, #0d243a); border-color:#2a4a6a;
+    color: #fff; font-weight: 700;
+  }
+  .btn-pri:hover:not(:disabled){ background:linear-gradient(135deg, #2a4a7c, #1a3a5a); }
+  .btn-danger{ background:linear-gradient(135deg, #7c2d12, #451a03); border-color:#dc2626; }
+  
+  .muted{ color: var(--muted); font-size: .9rem }
 
-  video{ width:100%; max-height:52vh; background:#000; border-radius:14px }
-  canvas{ width:100%; background:#02060d; border-radius:14px; border:1px solid var(--line) }
+  /* Video & Canvas */
+  .video-container{
+    position: relative; border-radius:16px; overflow: hidden; 
+    background: #000; box-shadow: var(--shadow);
+  }
+  video{ 
+    width:100%; max-height:50vh; background:#000; display: block;
+    object-fit: cover;
+  }
+  canvas{ 
+    width:100%; background:#02060d; border-radius:16px; 
+    border:1px solid var(--line); box-shadow: var(--shadow);
+  }
+  #overlay{ 
+    position:absolute; inset:0; pointer-events:auto; cursor: crosshair;
+  }
 
-  .metrics{ display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; margin-top:8px }
-  .metric{ background:#0d1626; border:1px solid var(--line); padding:10px; border-radius:12px; text-align:center }
-  .metric .lbl{ color:var(--muted); font-size:12px }
-  .metric .val{ font-size:26px; font-weight:900 }
+  /* Touch sensor */
+  .touch-sensor{
+    width: 100%; height: 200px; background: linear-gradient(135deg, #1a1a2e, #16213e);
+    border: 2px dashed var(--pri); border-radius: 16px; position: relative;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all .3s; overflow: hidden;
+  }
+  .touch-sensor:hover{ border-color: var(--accent); }
+  .touch-sensor.active{ 
+    background: linear-gradient(135deg, #2a1a3e, #1a2a4e); 
+    border-color: var(--accent); box-shadow: 0 0 20px rgba(168,85,247,.3);
+  }
+  .touch-text{ 
+    text-align: center; color: var(--muted); font-size: 16px; font-weight: 600;
+    pointer-events: none; z-index: 2; position: relative;
+  }
+  .touch-sensor::before{
+    content: ''; position: absolute; inset: 0; 
+    background: radial-gradient(circle at var(--x, 50%) var(--y, 50%), rgba(168,85,247,.1), transparent 60%);
+    opacity: 0; transition: opacity .3s;
+  }
+  .touch-sensor.active::before{ opacity: 1; }
+
+  /* Metrics */
+  .metrics{ 
+    display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); 
+    gap:12px; margin-top:12px;
+  }
+  .metric{ 
+    background:linear-gradient(135deg, #0d1626, #0a1320); 
+    border:1px solid var(--line); padding:16px; border-radius:14px; 
+    text-align:center; position: relative; overflow: hidden;
+    transition: transform .2s;
+  }
+  .metric:hover{ transform: translateY(-2px); }
+  .metric::before{
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, var(--pri), var(--accent));
+  }
+  .metric .lbl{ color:var(--muted); font-size:13px; margin-bottom: 8px; font-weight: 500 }
+  .metric .val{ 
+    font-size:clamp(24px, 5vw, 32px); font-weight:900; 
+    background: linear-gradient(135deg, #eaf2ff, #c9d7ef);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
   .ok{color:var(--ok)} .warn{color:var(--warn)} .bad{color:var(--bad)}
 
-  .toolbar{ position:sticky; bottom:0; z-index:10; background:linear-gradient(0deg, rgba(11,15,20,.95), rgba(11,15,20,.7)); backdrop-filter: blur(8px); border-top:1px solid var(--line); padding:10px }
-  .toolbar .grid{ display:grid; grid-template-columns: repeat(4, 1fr); gap:10px }
+  /* Mode Switch */
+  .mode-switch{
+    display: flex; background: #0a1320; border-radius: 12px; padding: 4px;
+    border: 1px solid var(--line); gap: 2px;
+  }
+  .mode-switch label{
+    flex: 1; text-align: center; padding: 8px 16px; border-radius: 8px;
+    transition: all .2s; font-size: 14px; font-weight: 600;
+    background: transparent; cursor: pointer;
+  }
+  .mode-switch label:has(input:checked){
+    background: var(--pri); color: #fff; 
+    box-shadow: 0 2px 8px rgba(83,182,255,.3);
+  }
+  .mode-switch input{ display: none; }
 
-  details.debug{ background:var(--panel); border:1px dashed var(--line); border-radius:14px; padding:10px }
-  details.debug summary{ cursor:pointer; user-select:none; outline:none }
-  .kv{ display:grid; grid-template-columns: 1fr auto; gap:6px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:12px; color:#c9d7ef }
-  .chip{ display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; border:1px solid var(--line); background:#0d1a2b }
-  .pill{ padding:4px 8px; border-radius:999px; border:1px solid var(--line); background:#0d1727; color:#bfe1ff }
+  /* Toolbar */
+  .toolbar{ 
+    position:sticky; bottom:0; z-index:20; 
+    background:linear-gradient(0deg, rgba(11,15,20,.95), rgba(11,15,20,.8)); 
+    backdrop-filter: var(--blur); border-top:1px solid var(--line); 
+    padding:12px; box-shadow: 0 -4px 20px rgba(0,0,0,.2);
+  }
+  .toolbar .grid{ 
+    display:grid; grid-template-columns: repeat(4, 1fr); gap:12px;
+    max-width: 1000px; margin: 0 auto;
+  }
+
+  /* Debug */
+  details.debug{ 
+    background:var(--panel); border:1px dashed var(--line); 
+    border-radius:16px; padding:16px; margin-top: 16px;
+  }
+  details.debug summary{ 
+    cursor:pointer; user-select:none; outline:none; font-weight: 600;
+    color: var(--pri); margin-bottom: 12px;
+  }
+  .kv{ 
+    display:grid; grid-template-columns: 1fr auto; gap:8px; 
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; 
+    font-size:12px; color:#c9d7ef; line-height: 1.6;
+  }
+  .kv > div:nth-child(odd){ color: var(--muted); }
+  
+  /* Status Pills */
+  .chip{ 
+    display:inline-flex; align-items:center; gap:8px; padding:8px 12px; 
+    border-radius:999px; border:1px solid var(--line); 
+    background:rgba(13,26,43,.8); backdrop-filter: var(--blur);
+    font-size: 13px; font-weight: 500;
+  }
+  .pill{ 
+    padding:6px 12px; border-radius:999px; border:1px solid var(--line); 
+    background:rgba(13,23,39,.9); color:#bfe1ff; font-size: 12px;
+    font-weight: 600; backdrop-filter: var(--blur);
+  }
+
+  /* Status indicators */
+  .status-indicator{
+    width: 8px; height: 8px; border-radius: 50%; margin-right: 8px;
+    animation: pulse 2s infinite;
+  }
+  .status-indicator.good{ background: var(--ok); }
+  .status-indicator.warn{ background: var(--warn); }
+  .status-indicator.bad{ background: var(--bad); }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.1); }
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .container{ padding: 8px; gap: 12px; }
+    .card{ padding: 12px; }
+    .metrics{ grid-template-columns: 1fr 1fr; }
+    .toolbar .grid{ grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .btn-row{ grid-template-columns: 1fr; }
+  }
+
+  /* Dark mode enhancements */
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #030712; --card: #0f172a; }
+  }
 </style>
 </head>
 <body>
 <header>
   <div class="h-wrap">
-    <h1>Vitals Cam — Frequência Cardíaca & Perfusão</h1>
+    <h1>Vitals Cam Pro — Frequência Cardíaca & Perfusão</h1>
     <span class="badge">educacional • não-médico</span>
   </div>
 </header>
 
 <div class="container">
   <section class="card">
-    <div class="row" style="justify-content:space-between; gap:8px">
-      <div class="chip">Modo:
-        <label><input type="radio" name="mode" value="finger" checked> Dedo</label>
-        <label><input type="radio" name="mode" value="face"> Rosto</label>
+    <!-- Mode Selection -->
+    <div class="mode-switch">
+      <label><input type="radio" name="mode" value="camera" checked> 📷 Câmera</label>
+      <label><input type="radio" name="mode" value="touch"> 👆 Touch</label>
+    </div>
+
+    <!-- Controls -->
+    <div class="row" style="justify-content:space-between; gap:12px; margin-top: 16px;">
+      <div class="chip" id="sourceChip">Fonte:
+        <select id="source">
+          <option value="finger">Dedo</option>
+          <option value="face">Rosto</option>
+        </select>
       </div>
       <div class="chip">Canal:
-        <select id="channel"><option value="g" selected>G</option><option value="gr">G−R</option><option value="r">R</option><option value="b">B</option><option value="y">Luma</option></select>
+        <select id="channel">
+          <option value="g" selected>Verde</option>
+          <option value="gr">Verde-Vermelho</option>
+          <option value="r">Vermelho</option>
+          <option value="b">Azul</option>
+          <option value="y">Luminância</option>
+        </select>
       </div>
       <div class="chip">Janela:
-        <select id="win"><option>8</option><option selected>12</option><option>20</option></select>
+        <select id="win">
+          <option>8</option>
+          <option selected>12</option>
+          <option>16</option>
+          <option>20</option>
+        </select>s
       </div>
     </div>
 
-    <div class="col" style="gap:10px; margin-top:10px">
-      <div style="position:relative">
+    <!-- Camera Mode -->
+    <div class="col" id="cameraMode" style="gap:12px; margin-top:16px">
+      <div class="video-container">
         <video id="video" playsinline muted></video>
-        <canvas id="overlay" style="position:absolute; inset:0; pointer-events:none"></canvas>
+        <canvas id="overlay"></canvas>
       </div>
-      <canvas id="wave" height="140"></canvas>
+      <canvas id="wave" height="160"></canvas>
     </div>
 
+    <!-- Touch Mode -->
+    <div class="col" id="touchMode" style="gap:12px; margin-top:16px; display:none">
+      <div class="touch-sensor" id="touchSensor">
+        <div class="touch-text">
+          <div style="font-size: 24px; margin-bottom: 8px;">👆</div>
+          <div>Coloque o dedo na tela</div>
+          <div style="font-size: 12px; margin-top: 4px;">Mantenha pressionado</div>
+        </div>
+      </div>
+      <canvas id="waveTouch" height="160"></canvas>
+    </div>
+
+    <!-- Metrics -->
     <div class="metrics">
-      <div class="metric"><div class="lbl">Frequência Cardíaca</div><div class="val" id="bpm">--<span class="muted"> BPM</span></div></div>
-      <div class="metric"><div class="lbl">Perfusão (PI ≈ AC/DC)</div><div class="val" id="pi">--<span class="muted"> %</span></div></div>
-      <div class="metric"><div class="lbl">Qualidade</div><div class="val" id="quality">--</div></div>
-    </div>
-
-    <div class="row" style="margin-top:8px; justify-content:space-between">
-      <div class="pill" id="status">Pronto.</div>
-      <div class="pill" id="snrTag">SNR: -- dB</div>
-      <div class="pill" id="motionTag">Mov: --</div>
-      <div class="chip">ROI <input id="roiSize" type="range" min="30" max="90" value="70" style="width:130px"> <span id="roiInfo" class="muted" style="font-size:12px">70%</span></div>
-      <div class="chip">Filtros <label><input id="stabChk" type="checkbox" checked> Estabilizador</label> <label><input id="autoGate" type="checkbox" checked> Travar com baixa qualidade</label></div>
-    </div>
-
-    <details class="debug" style="margin-top:10px">
-      <summary>Debug avançado</summary>
-      <div class="kv" style="margin-top:8px">
-        <div>FPS</div><div id="fps">--</div>
-        <div>BPM bruto</div><div id="bpmRaw">--</div>
-        <div>BPM rastreado</div><div id="bpmTrack">--</div>
-        <div>PI bruto</div><div id="piRaw">--</div>
-        <div>AC/DC</div><div id="acdc">--</div>
-        <div>Cutoffs</div><div id="cuts">0.7–3.0 Hz</div>
-        <div>ROI (x,y,w,h)</div><div id="roiDbg">--</div>
+      <div class="metric">
+        <div class="lbl">Frequência Cardíaca</div>
+        <div class="val" id="bpm">--<span class="muted" style="font-size: 16px;"> BPM</span></div>
       </div>
-      <p class="muted" style="margin-top:8px">Toque no <b>vídeo</b> para centralizar a ROI. Em rosto, use canal <b>G−R</b> para reduzir variação de luz; em dedo, tente ligar a <b>lanterna</b>.</p>
+      <div class="metric">
+        <div class="lbl">Perfusão (PI ≈ AC/DC)</div>
+        <div class="val" id="pi">--<span class="muted" style="font-size: 16px;"> %</span></div>
+      </div>
+      <div class="metric">
+        <div class="lbl">Qualidade do Sinal</div>
+        <div class="val" id="quality">--</div>
+      </div>
+      <div class="metric">
+        <div class="lbl">Variabilidade FC</div>
+        <div class="val" id="hrv">--<span class="muted" style="font-size: 16px;"> ms</span></div>
+      </div>
+    </div>
+
+    <!-- Status Row -->
+    <div class="row" style="margin-top:16px; justify-content:space-between; flex-wrap: wrap;">
+      <div class="pill" id="status">
+        <span class="status-indicator good"></span>Pronto para iniciar
+      </div>
+      <div class="pill" id="snrTag">SNR: -- dB</div>
+      <div class="pill" id="motionTag">Movimento: --</div>
+      <div class="pill" id="confidenceTag">Confiança: --%</div>
+    </div>
+
+    <!-- Advanced Controls -->
+    <div class="row" style="margin-top:12px; justify-content:space-between; flex-wrap: wrap;">
+      <div class="chip" id="roiControl">
+        ROI Size 
+        <input id="roiSize" type="range" min="20" max="90" value="70" style="width:120px"> 
+        <span id="roiInfo" class="muted" style="font-size:12px">70%</span>
+      </div>
+      <div class="chip">
+        <label><input id="stabChk" type="checkbox" checked> Estabilizador</label>
+      </div>
+      <div class="chip">
+        <label><input id="autoGate" type="checkbox" checked> Auto-Gate</label>
+      </div>
+      <div class="chip">
+        <label><input id="adaptiveFilter" type="checkbox" checked> Filtro Adaptativo</label>
+      </div>
+    </div>
+
+    <!-- Debug Panel -->
+    <details class="debug">
+      <summary>🔧 Diagnóstico Avançado</summary>
+      <div class="kv" style="margin-top:12px">
+        <div>FPS</div><div id="fps">--</div>
+        <div>BPM Raw</div><div id="bpmRaw">--</div>
+        <div>BPM Filtrado</div><div id="bpmTrack">--</div>
+        <div>PI Raw</div><div id="piRaw">--</div>
+        <div>AC/DC Ratio</div><div id="acdc">--</div>
+        <div>Frequência de Corte</div><div id="cuts">0.7–3.0 Hz</div>
+        <div>ROI (x,y,w,h)</div><div id="roiDbg">--</div>
+        <div>Amostras</div><div id="samples">--</div>
+        <div>Tempo de Análise</div><div id="analysisTime">-- ms</div>
+        <div>Picos Detectados</div><div id="peaksCount">--</div>
+        <div>Intervalo R-R</div><div id="rrInterval">-- ms</div>
+      </div>
+      <p class="muted" style="margin-top:12px; line-height: 1.6;">
+        <strong>💡 Dicas de uso:</strong><br>
+        • <strong>Câmera:</strong> Toque no vídeo para reposicionar ROI<br>
+        • <strong>Dedo:</strong> Use lanterna para melhor iluminação<br>
+        • <strong>Rosto:</strong> Canal Verde-Vermelho reduz variação de luz<br>
+        • <strong>Touch:</strong> Pressione firmemente e mantenha estável
+      </p>
     </details>
   </section>
 </div>
 
 <div class="toolbar">
   <div class="grid">
-    <button id="start" class="btn-pri">Iniciar</button>
-    <button id="torch" disabled>Lanterna</button>
-    <button id="fs">Tela cheia</button>
-    <button id="stop" class="btn-ghost" disabled>Parar</button>
+    <button id="start" class="btn-pri">▶ Iniciar</button>
+    <button id="torch" disabled>🔦 Lanterna</button>
+    <button id="fs">📱 Tela Cheia</button>
+    <button id="stop" class="btn-danger" disabled>⏹ Parar</button>
   </div>
 </div>
 
 <script>
 (()=>{
-  // ========= Helpers =========
+  'use strict';
+  
+  // ========= Enhanced Helpers =========
   const $ = id => document.getElementById(id);
-  const clamp = (v,min,max)=>Math.min(max,Math.max(min,v));
-  const lerp = (a,b,t)=>a + (b-a)*t;
-  const fmt = (x,d=1)=>Number.isFinite(x)?x.toFixed(d):'--';
-  const vibrate = ms => (navigator.vibrate && navigator.vibrate(ms));
+  const $$ = sel => document.querySelectorAll(sel);
+  const clamp = (v,min,max) => Math.min(max, Math.max(min, v));
+  const lerp = (a,b,t) => a + (b-a)*t;
+  const fmt = (x,d=1) => Number.isFinite(x) ? x.toFixed(d) : '--';
+  const vibrate = ms => navigator.vibrate && navigator.vibrate(ms);
+  const now = () => performance.now();
+  
+  // Improved logging
+  const log = {
+    info: msg => console.log(`[Vitals] ${msg}`),
+    warn: msg => console.warn(`[Vitals] ${msg}`),
+    error: msg => console.error(`[Vitals] ${msg}`)
+  };
 
   // ========= Elements =========
-  const video = $('video');
-  const overlay = $('overlay'); const octx = overlay.getContext('2d');
-  const wave = $('wave'); const wctx = wave.getContext('2d', { willReadFrequently:true });
-  const statusEl = $('status'), snrTag = $('snrTag'), motionTag=$('motionTag');
-  const bpmEl=$('bpm'), piEl=$('pi'), qualEl=$('quality');
-  const bpmRawEl=$('bpmRaw'), bpmTrackEl=$('bpmTrack'), piRawEl=$('piRaw'), acdcEl=$('acdc'), fpsEl=$('fps'), roiDbg=$('roiDbg');
-  const modeRadios = [...document.querySelectorAll('input[name="mode"]')];
-  const channelSel = $('channel'); const winSel=$('win');
-  const roiSize=$('roiSize'); const roiInfo=$('roiInfo');
-  const stabChk=$('stabChk'); const autoGate=$('autoGate');
-  const startBtn=$('start'), stopBtn=$('stop'), torchBtn=$('torch'), fsBtn=$('fs');
+  const video = $('video'), overlay = $('overlay'), wave = $('wave'), waveTouch = $('waveTouch');
+  const touchSensor = $('touchSensor'), cameraMode = $('cameraMode'), touchMode = $('touchMode');
+  const octx = overlay.getContext('2d'), wctx = wave.getContext('2d', {willReadFrequently:true});
+  const wtctx = waveTouch.getContext('2d', {willReadFrequently:true});
+  
+  const statusEl = $('status'), snrTag = $('snrTag'), motionTag = $('motionTag'), confidenceTag = $('confidenceTag');
+  const bpmEl = $('bpm'), piEl = $('pi'), qualEl = $('quality'), hrvEl = $('hrv');
+  const bpmRawEl = $('bpmRaw'), bpmTrackEl = $('bpmTrack'), piRawEl = $('piRaw');
+  const acdcEl = $('acdc'), fpsEl = $('fps'), roiDbg = $('roiDbg');
+  const samplesEl = $('samples'), analysisTimeEl = $('analysisTime');
+  const peaksCountEl = $('peaksCount'), rrIntervalEl = $('rrInterval');
+  
+  const modeRadios = [...$$('input[name="mode"]')];
+  const sourceSel = $('source'), channelSel = $('channel'), winSel = $('win');
+  const roiSize = $('roiSize'), roiInfo = $('roiInfo'), sourceChip = $('sourceChip'), roiControl = $('roiControl');
+  const stabChk = $('stabChk'), autoGate = $('autoGate'), adaptiveFilter = $('adaptiveFilter');
+  const startBtn = $('start'), stopBtn = $('stop'), torchBtn = $('torch'), fsBtn = $('fs');
 
-  // ========= State =========
-  let running=false, stream=null, track=null, raf=null;
-  let lastTs=0, frames=0, fps=0;
-  let roi={x:0, y:0, w:0, h:0}; let roiRel={cx:0.5, cy:0.5, s:0.7};
-  let tArr=[], vArr=[]; const Fs=30; // reamostragem
-  let bpPrev=null; // tracked BPM
-  let holdBPM=null, holdPI=null; // shown values (gated)
-  let lastMean=0, motion=0; // motion metric
-
-  function getMode(){ return modeRadios.find(r=>r.checked).value; }
-  function setStatus(s){ statusEl.textContent=s; }
-
-  function constraints(){
-    const facing = (getMode()==='finger')?{ exact:'environment' }:'user';
-    return { audio:false, video:{ facingMode:facing, width:{ideal:640}, height:{ideal:480}, frameRate:{ideal:30,max:60} } };
-  }
-
-  // ========= Filters (Biquad) =========
-  class Biquad {
-    constructor(type, Fc, Q, Fs){ this.update(type,Fc,Q,Fs); this.x1=this.x2=this.y1=this.y2=0; }
-    update(type, Fc, Q, Fs){
-      const w0 = 2*Math.PI*Fc/Fs; const cos=Math.cos(w0), sin=Math.sin(w0);
-      let a0,a1,a2,b0,b1,b2; const alpha = sin/(2*Q);
-      if(type==='highpass'){ b0=(1+cos)/2; b1=-(1+cos); b2=(1+cos)/2; a0=1+alpha; a1=-2*cos; a2=1-alpha; }
-      else if(type==='lowpass'){ b0=(1-cos)/2; b1=1-cos; b2=(1-cos)/2; a0=1+alpha; a1=-2*cos; a2=1-alpha; }
-      this.b0=b0/a0; this.b1=b1/a0; this.b2=b2/a0; this.a1=a1/a0; this.a2=a2/a0;
-    }
-    proc(x){ const y = this.b0*x + this.b1*this.x1 + this.b2*this.x2 - this.a1*this.y1 - this.a2*this.y2; this.x2=this.x1; this.x1=x; this.y2=this.y1; this.y1=y; return y; }
-    reset(){ this.x1=this.x2=this.y1=this.y2=0; }
-  }
-  const filt = {
-    hp: new Biquad('highpass', 0.7, 0.707, Fs), // 0.7 Hz ~ 42 bpm
-    lp: new Biquad('lowpass', 3.0, 0.707, Fs),  // 3.0 Hz ~ 180 bpm
-    smooth(v,alpha=0.25, key){ if(!this._s) this._s={}; const cur=this._s[key]; const out = Number.isFinite(cur)? (1-alpha)*cur + alpha*v : v; this._s[key]=out; return out; },
-    reset(){ this.hp.reset(); this.lp.reset(); this._s={}; }
+  // ========= Enhanced State =========
+  let state = {
+    running: false,
+    mode: 'camera', // camera | touch
+    stream: null,
+    track: null,
+    raf: null,
+    
+    // Performance
+    lastTs: 0,
+    frames: 0,
+    fps: 0,
+    
+    // ROI
+    roi: {x:0, y:0, w:0, h:0},
+    roiRel: {cx:0.5, cy:0.5, s:0.7},
+    
+    // Signal processing
+    tArr: [],
+    vArr: [],
+    peakTimes: [],
+    rrIntervals: [],
+    Fs: 30,
+    
+    // Tracking
+    bpPrev: null,
+    holdBPM: null,
+    holdPI: null,
+    holdHRV: null,
+    
+    // Motion & quality
+    lastMean: 0,
+    motion: 0,
+    confidence: 0,
+    
+    // Touch mode
+    touchActive: false,
+    touchStartTime: 0,
+    touchValues: [],
+    
+    // Analysis
+    lastAnalysisTime: 0
   };
-  function bandpassSample(x){ return filt.lp.proc(filt.hp.proc(x)); }
 
-  // ========= ROI =========
-  function updateROI(){
-    const w=overlay.width=video.videoWidth; const h=overlay.height=video.videoHeight; if(!w||!h) return;
-    const s=roiRel.s, rw=(w*s)|0, rh=(getMode()==='finger'? (h*s)|0 : (h*0.22)|0);
-    const cx=roiRel.cx*w, cy=roiRel.cy*h; roi={ x: clamp((cx - rw/2)|0, 0, w-rw), y: clamp((cy - rh/2)|0, 0, h-rh), w: rw, h: rh };
-  }
-  function drawROI(){ octx.clearRect(0,0,overlay.width,overlay.height); if(!roi.w) return; octx.strokeStyle='rgba(83,182,255,.9)'; octx.lineWidth=2; octx.strokeRect(roi.x,roi.y,roi.w,roi.h); }
-  overlay.addEventListener('click', ev=>{ const rect=overlay.getBoundingClientRect(); const x=(ev.clientX-rect.left)/rect.width; const y=(ev.clientY-rect.top)/rect.height; roiRel.cx=x; roiRel.cy=y; updateROI(); drawROI(); vibrate(20); });
-  roiSize.addEventListener('input', ()=>{ roiRel.s=roiSize.value/100; roiInfo.textContent=roiSize.value+'%'; updateROI(); drawROI(); });
-
-  // ========= Capture =========
-  async function start(){
-    try{
-      running=true; stream = await navigator.mediaDevices.getUserMedia(constraints());
-      video.srcObject=stream; await video.play();
-      track = stream.getVideoTracks()[0];
-      enableTorchIfSupported();
-      resetState();
-      setStatus('Capturando… mantenha estável.');
-      loop();
-    }catch(e){ running=false; setStatus('Erro na câmera: '+e.message); }
-  }
-  function stop(){ running=false; if(raf) cancelAnimationFrame(raf); if(track){try{track.stop();}catch{} track=null;} if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; } setStatus('Parado.'); startBtn.disabled=false; stopBtn.disabled=true; torchBtn.disabled=true; }
-  function resetState(){ filt.reset(); tArr=[]; vArr=[]; bpPrev=null; holdBPM=holdPI=null; lastMean=0; motion=0; frames=0; lastTs=performance.now(); updateROI(); drawROI(); }
-
-  function enableTorchIfSupported(){ if(!track){ torchBtn.disabled=true; return; } const caps=track.getCapabilities?.()||{}; torchBtn.disabled = !('torch' in caps); }
-  async function toggleTorch(){ if(!track) return; const caps=track.getCapabilities?.()||{}; if(!('torch' in caps)){ setStatus('Lanterna não suportada.'); return; } const on=!(track.getSettings?.().torch===true); try{ await track.applyConstraints({ advanced:[{ torch:on }] }); setStatus('Lanterna: '+(on?'on':'off')); }catch(e){ setStatus('Falha ao alternar lanterna.'); } }
-
-  // ========= Frame processing =========
-  function getFrameData(){
-    const vw=video.videoWidth, vh=video.videoHeight; if(!vw||!vh) return null;
-    updateROI();
-    const tmp = document.createElement('canvas'); tmp.width=vw; tmp.height=vh; const tctx=tmp.getContext('2d', { willReadFrequently:true }); tctx.drawImage(video,0,0,vw,vh);
-    const img = tctx.getImageData(roi.x, roi.y, roi.w, roi.h);
-    return img;
-  }
-  function selectChannel(img){ const d=img.data; const mode=channelSel.value; let sum=0,n=0; for(let i=0;i<d.length;i+=4){ const r=d[i], g=d[i+1], b=d[i+2]; let v; if(mode==='g') v=g; else if(mode==='r') v=r; else if(mode==='b') v=b; else if(mode==='y') v=0.299*r+0.587*g+0.114*b; else v=g - 0.5*r; sum+=v; n++; } return sum/n; }
-
-  function resample(times, values){ const T=(parseFloat(winSel.value)||12)*1000; const tEnd=times[times.length-1]; const tStart=tEnd-T; const n=Math.max(30, Math.round(Fs*T/1000)); const out=new Float32Array(n); let i=0; while(i<times.length && times[i]<tStart) i++; if(i>0) i--; const dt=T/(n-1); for(let k=0;k<n;k++){ const tk=tStart + k*dt; while(i+1<times.length && times[i+1]<tk) i++; const t0=times[i], t1=times[Math.min(i+1,times.length-1)]; const y0=values[i], y1=values[Math.min(i+1,values.length-1)]; const a=(t1===t0)?0:((tk-t0)/(t1-t0)); out[k]=y0 + a*(y1-y0); } return out; }
-
-  function percentile(arr, p){ const a=Float32Array.from(arr).sort(); const idx=clamp(Math.round((p/100)*(a.length-1)),0,a.length-1); return a[idx]; }
-  function bpmAutocorr(sig){ const minB=45, maxB=180; const minLag=Math.floor(Fs*60/maxB), maxLag=Math.ceil(Fs*60/minB); let bestL=0, bestR=-1; for(let L=minLag; L<=maxLag; L++){ let num=0, d0=0, d1=0; for(let t=0;t<sig.length-L;t++){ const a=sig[t], b=sig[t+L]; num+=a*b; d0+=a*a; d1+=b*b; } const r=num/Math.sqrt((d0||1)*(d1||1)); if(r>bestR){ bestR=r; bestL=L; } } let bpm=60*Fs/bestL; if(Number.isFinite(bpPrev)) bpm = clamp(bpPrev + clamp(bpm-bpPrev,-8,8), 40, 200); return { bpm, r:bestR }; }
-  function computeVitals(sig, raw){ const bp=new Float32Array(sig.length); for(let i=0;i<sig.length;i++) bp[i]=filt.lp.proc(filt.hp.proc(sig[i])); let mean=0; for(const v of raw) mean+=v; mean/=raw.length; const p95=percentile(bp,95), p5=percentile(bp,5); const AC=0.5*(p95-p5); const PI = AC/Math.max(1e-6, mean); const {bpm, r} = bpmAutocorr(bp); const snrDb = snrFrom(bp, raw); let q = 0.5*norm01(r,0.3,0.9) + 0.5*norm01(snrDb, 0, 15); q = clamp(q - clamp(motion-0.5,0,1)*0.3, 0, 1); return { bpm, pi:PI, quality:q, snrDb, AC, DC:mean } }
-  function snrFrom(bp, raw){ let eS=0,eN=0; for(let i=0;i<bp.length;i++) eS+=bp[i]*bp[i]; const hp = new Biquad('highpass', 0.2, 0.707, Fs); let rArr=new Float32Array(raw.length); for(let i=0;i<raw.length;i++) rArr[i]=hp.proc(raw[i]); for(let i=0;i<rArr.length;i++){ eN+=rArr[i]*rArr[i]; } return 10*Math.log10((eS+1e-12)/(eN+1e-12)); }
-  function norm01(x,a,b){ return clamp((x-a)/(b-a),0,1); }
-
-  function drawWave(arr){ const w=wave.width, h=wave.height; wctx.clearRect(0,0,w,h); wctx.fillStyle='#06101e'; wctx.fillRect(0,0,w,h); wctx.beginPath(); let min=Infinity, max=-Infinity; for(const v of arr){ if(v<min)min=v; if(v>max)max=v; } const span=(max-min)||1; for(let i=0;i<arr.length;i++){ const x = i*(w/(arr.length-1)); const y = h - ((arr[i]-min)/span)*h; if(i===0) wctx.moveTo(x,y); else wctx.lineTo(x,y); } wctx.lineWidth=2; wctx.strokeStyle='#53b6ff'; wctx.stroke(); }
-
-  const smoothCache={};
-  function smooth(key,val,alpha){ const cur=smoothCache[key]; const out=Number.isFinite(cur)? (1-alpha)*cur + alpha*val : val; smoothCache[key]=out; return out; }
-
-  function updateUI(v){ const gate = autoGate.checked && (v.quality<0.35 || v.snrDb<3); if(!gate){ holdBPM = Number.isFinite(v.bpm)? v.bpm : holdBPM; holdPI = Number.isFinite(v.pi)? v.pi : holdPI; if(Number.isFinite(holdBPM)) bpPrev = holdBPM; }
-    const showBPM = stabChk.checked? smooth('bpm', holdBPM, 0.25) : holdBPM; const showPI  = stabChk.checked? smooth('pi',  (holdPI||0)*100, 0.25) : (holdPI||0)*100;
-    bpmEl.textContent = Number.isFinite(showBPM)? Math.round(showBPM)+' ' : '-- ';
-    piEl.textContent  = Number.isFinite(showPI)? showPI.toFixed(1)+' ' : '-- ';
-    const q = v.quality; let qTxt='OK', qCls='warn'; if(!Number.isFinite(q) || q<0.35){ qTxt='Ruim'; qCls='bad'; } else if(q>=0.65){ qTxt='Boa'; qCls='ok'; }
-    qualEl.className = 'val '+qCls; qualEl.textContent = Number.isFinite(q)? `${qTxt} (${Math.round(q*100)}%)` : '--';
-    snrTag.textContent = `SNR: ${fmt(v.snrDb,1)} dB`; bpmRawEl.textContent = fmt(v.bpm,1); bpmTrackEl.textContent = fmt(showBPM,1); piRawEl.textContent = fmt(v.pi*100,1)+' %'; acdcEl.textContent = `${fmt(v.AC,3)}/${fmt(v.DC,2)}`;
+  // ========= Improved Filters =========
+  class BiquadFilter {
+    constructor(type, Fc, Q, Fs) { 
+      this.update(type, Fc, Q, Fs); 
+      this.reset();
+    }
+    
+    update(type, Fc, Q, Fs) {
+      const w0 = 2 * Math.PI * Fc / Fs;
+      const cos = Math.cos(w0), sin = Math.sin(w0);
+      const alpha = sin / (2 * Q);
+      
+      let a0, a1, a2, b0, b1, b2;
+      
+      switch(type) {
+        case 'highpass':
+          b0 = (1 + cos) / 2; b1 = -(1 + cos); b2 = (1 + cos) / 2;
+          a0 = 1 + alpha; a1 = -2 * cos; a2 = 1 - alpha;
+          break;
+        case 'lowpass':
+          b0 = (1 - cos) / 2; b1 = 1 - cos; b2 = (1 - cos) / 2;
+          a0 = 1 + alpha; a1 = -2 * cos; a2 = 1 - alpha;
+          break;
+        case 'bandpass':
+          b0 = alpha; b1 = 0; b2 = -alpha;
+          a0 = 1 + alpha; a1 = -2 * cos; a2 = 1 - alpha;
+          break;
+        default:
+          throw new Error(`Unknown filter type: ${type}`);
+      }
+      
+      this.b0 = b0/a0; this.b1 = b1/a0; this.b2 = b2/a0;
+      this.a1 = a1/a0; this.a2 = a2/a0;
+    }
+    
+    process(x) {
+      const y = this.b0*x + this.b1*this.x1 + this.b2*this.x2 - this.a1*this.y1 - this.a2*this.y2;
+      this.x2 = this.x1; this.x1 = x;
+      this.y2 = this.y1; this.y1 = y;
+      return y;
+    }
+    
+    reset() { this.x1 = this.x2 = this.y1 = this.y2 = 0; }
   }
 
-  // ========= Loop =========
-  function loop(ts){ if(!running) return; raf=requestAnimationFrame(loop); frames++; if(ts-lastTs>1000){ fps=frames; frames=0; lastTs=ts; fpsEl.textContent=fps; }
-    if(video.videoWidth && overlay.width!==video.videoWidth){ updateROI(); drawROI(); }
-    const img = getFrameData(); if(!img) return;
-    const curMean = selectChannel(img);
-    const now = performance.now(); tArr.push(now); vArr.push(curMean);
-    const m = Math.abs(curMean - lastMean); lastMean = curMean; motion = lerp(motion, m, 0.2); motionTag.textContent = `Mov: ${fmt(motion,3)}`;
-    const T=(parseFloat(winSel.value)||12)*1000; while(tArr.length && (now - tArr[0]) > T*1.2){ tArr.shift(); vArr.shift(); }
-    if(!this._lastP || now - this._lastP > 100){ this._lastP=now; const y = resample(tArr, vArr); if(y && y.length>16){ const vit = computeVitals(y, vArr); updateUI(vit); drawWave(y); } drawROI(); setStatus(`${getMode()==='finger'?'Dedo':'Rosto'} • ${channelSel.value.toUpperCase()} • ${fps} FPS`); }
+  // Adaptive filtering system
+  const filters = {
+    hp: new BiquadFilter('highpass', 0.7, 0.707, state.Fs),
+    lp: new BiquadFilter('lowpass', 3.0, 0.707, state.Fs),
+    notch50: new BiquadFilter('bandpass', 50, 30, state.Fs), // 50Hz notch
+    notch60: new BiquadFilter('bandpass', 60, 30, state.Fs), // 60Hz notch
+    smoothers: new Map(),
+    
+    smooth(value, alpha = 0.25, key = 'default') {
+      const current = this.smoothers.get(key);
+      const output = Number.isFinite(current) ? (1-alpha)*current + alpha*value : value;
+      this.smoothers.set(key, output);
+      return output;
+    },
+    
+    reset() {
+      this.hp.reset(); this.lp.reset();
+      this.notch50.reset(); this.notch60.reset();
+      this.smoothers.clear();
+    },
+    
+    adaptiveProcess(x, quality) {
+      let y = x;
+      if (adaptiveFilter.checked && quality < 0.5) {
+        // Apply more aggressive filtering for low quality
+        y = this.notch50.process(y);
+        y = this.notch60.process(y);
+      }
+      y = this.hp.process(y);
+      y = this.lp.process(y);
+      return y;
+    }
+  };
+
+  // ========= Mode Management =========
+  function getCurrentMode() {
+    return modeRadios.find(r => r.checked).value;
+  }
+  
+  function switchMode() {
+    state.mode = getCurrentMode();
+    
+    if (state.mode === 'camera') {
+      cameraMode.style.display = 'block';
+      touchMode.style.display = 'none';
+      sourceChip.style.display = 'inline-flex';
+      roiControl.style.display = 'inline-flex';
+      torchBtn.disabled = !state.track;
+    } else {
+      cameraMode.style.display = 'none';
+      touchMode.style.display = 'block';
+      sourceChip.style.display = 'none';
+      roiControl.style.display = 'none';
+      torchBtn.disabled = true;
+    }
+    
+    resetState();
+    
+    if (state.running) {
+      stop();
+      setTimeout(() => start(), 100);
+    }
   }
 
-  // ========= Fullscreen =========
-  fsBtn.addEventListener('click', ()=>{ const el=document.documentElement; if(!document.fullscreenElement){ el.requestFullscreen?.(); } else { document.exitFullscreen?.(); } });
-
-  // ========= Bindings =========
-  startBtn.addEventListener('click', async()=>{ startBtn.disabled=true; stopBtn.disabled=false; await start(); });
-  stopBtn.addEventListener('click', ()=>{ stop(); startBtn.disabled=false; stopBtn.disabled=true; });
-  torchBtn.addEventListener('click', async()=>{ await toggleTorch(); });
-  channelSel.addEventListener('change', ()=>{ filt.reset(); });
-  modeRadios.forEach(r=> r.addEventListener('change', ()=>{ if(running){ stop(); start(); } }));
-
-  // Cleanup
-  window.addEventListener('beforeunload', ()=>{ try{ if(track) track.stop(); if(stream) stream.getTracks().forEach(t=>t.stop()); }catch{} });
-})();
-</script>
-</body>
-</html>
+  // ========= Enhanced ROI Management =========
+  function updateROI() {
+    if (state.mode !== 'camera') return;
+    
+    const w = overlay.width = video.videoWidth;
+    const h = overlay.height = video.videoHeight;
+    if (!w || !h) return;
+    
+    const s = state.roiRel.s;
+    const source = sourceSel.value;
+    
+    let rw = (w * s) | 0;
+    let rh = source === 'finger' ? (h * s) | 0 : (h * 0.22) | 0;
+    
+    const cx = state.roiRel.cx * w;
+    const cy = state.roiRel.cy * h;
+    
+    state.roi = {
+      x: clamp((cx - rw/2) | 0, 0, w - rw),
+      y: clamp((cy - rh/2) | 0, 0, h - rh),
+      w: rw,
+      h: rh
+    };
